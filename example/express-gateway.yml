@@ -1,0 +1,84 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: eg-sentinel-pv 
+spec:
+  capacity:
+    storage: 100Mi 
+  accessModes:
+  - ReadWriteMany 
+  nfs: 
+    path: /gv0/eg-sentinel
+    server: actual-camel 
+  persistentVolumeReclaimPolicy: Retain 
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: eg-sentinel-nfs
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: eg-deployment
+  labels:
+    app: eg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eg
+  template:
+    metadata:
+      labels:
+        app: eg
+    spec:
+      containers:
+        - name: eg
+          env:
+            - name: EG_CONFIG_DIR
+              value: /usr/src/app/config
+          image: drmegavolt/express-gateway:sentinel
+          ports:
+            - containerPort: 8080
+            - containerPort: 9876
+          volumeMounts:
+            - name: eg-nfs
+              mountPath: /usr/src/app/config
+      volumes:
+        - name: eg-nfs
+          persistentVolumeClaim:
+            claimName: eg-sentinel-nfs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eg-service
+spec:
+  type: NodePort
+  ports:
+  - nodePort: 30001 # the port that this service should serve on
+    # the container on each pod to connect to, can be a name
+    # (e.g. 'www') or a number (e.g. 80)
+    port: 8080
+    protocol: TCP
+    name: http
+  - nodePort: 30002 # the port that this service should serve on
+    # the container on each pod to connect to, can be a name
+    # (e.g. 'www') or a number (e.g. 80)
+    port: 9876
+    protocol: TCP
+    name: admin
+  # just like the selector in the deployment,
+  # but this time it identifies the set of pods to load balance
+  # traffic to.
+  selector:
+    app: eg
