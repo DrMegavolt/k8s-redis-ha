@@ -7,7 +7,7 @@ Redis Images and Samples in this project are implemented using the latest featur
 
 # Requirements
 
-* Kubernetes 1.6 cluster
+* Kubernetes 1.8 cluster
 * Redis 3.2
 
 # Quick Start
