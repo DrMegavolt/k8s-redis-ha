@@ -35,6 +35,8 @@ root@console:# redis-cli -h "${MASTER_IP}" -a "${SERVER_PASS}" set foo bar
 OK
 root@console:# redis-cli -h redis-server -a "${SERVER_PASS}" get foo
 bar
+root@console:# redis-cli -h redis-server -a "${SERVER_PASS}" KEYS *
+....
 ```
 
 The passowrd is necessary for preventing independent Redis clusters from merging together in some circumstances.
@@ -52,53 +54,13 @@ statefulset "redis-server" scaled
 
 After these scale up/down, the expected number of available slaves in the Redis set are reset automatically.
 
-# Sample Code in Python
+Deploy Express-Gateway using express-gateway.yml
+example uses nfs volume, change as needed
 
-```console
-$ kubectl exec -ti console -- ipython
+configure EG CLI to use service IP address(Node's IP) and port 30001
+```yml
+
+cli:
+  url: http://10.0.0.68:31573
 ```
-
-```python
-In [1]: from redis import StrictRedis
-
-In [2]: from redis.sentinel import Sentinel
-
-In [3]: sentinel = Sentinel([
-   ...:         ('redis-sentinel-0.redis-sentinel.default.svc.cluster.local', 26379),
-   ...:         ('redis-sentinel-1.redis-sentinel.default.svc.cluster.local', 26379),
-   ...:         ('redis-sentinel-2.redis-sentinel.default.svc.cluster.local', 26379)
-   ...:     ], socket_timeout=0.1
-   ...: )
-
-In [4]: master = sentinel.master_for(
-   ...:     'mymaster',
-   ...:     password='_redis-server._tcp.redis-server.default.svc.cluster.local',
-   ...:     socket_timeout=0.1
-   ...: )
-
-In [5]: slave = sentinel.slave_for(
-   ...:     'mymaster',
-   ...:     password='_redis-server._tcp.redis-server.default.svc.cluster.local',
-   ...:     socket_timeout=0.1
-   ...: )
-
-In [6]: master.set('foo', 'bar')
-Out[6]: True
-
-In [7]: slave.get('foo')
-Out[7]: b'bar'
-```
-
-# Running the Test Script
-
-```console
-$ pyvenv .venv
-$ source .venv/bin/activate
-$ pip install -r test/requirements.txt
-```
-
-You can run the test command using the following command:
-
-```console
-$ KUBE_NAMESPACE='{{Your name space}}' nosetests test/test.py
-```
+use CLI as needed. 
